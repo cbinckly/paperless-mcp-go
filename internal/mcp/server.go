@@ -13,10 +13,11 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// Server name and version constants
+// Server name, version, and content type constants
 const (
 	ServerName    = "Paperless MCP Server"
 	ServerVersion = "1.0.0"
+	MimeTypeJSON  = "application/json"
 )
 
 // Server represents the MCP server
@@ -111,9 +112,8 @@ func (s *Server) RegisterTool(tool Tool) error {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
 
-		// Convert result to string representation
-		resultStr := formatToolResult(result)
-		return mcp.NewToolResultText(resultStr), nil
+		// Return structured result using the SDK's built-in function
+		return newStructuredToolResult(result), nil
 	}
 
 	// Add the tool to the MCP server
@@ -123,28 +123,35 @@ func (s *Server) RegisterTool(tool Tool) error {
 	return nil
 }
 
-// formatToolResult formats a tool result for MCP response
-func formatToolResult(result interface{}) string {
-	// Try JSON encoding first for structured data
-	jsonBytes, err := json.Marshal(result)
-	if err == nil {
-		return string(jsonBytes)
-	}
-	
-	// Fallback to simple string formatting
-	switch v := result.(type) {
-	case string:
-		return v
-	case map[string]interface{}:
-		jsonBytes, _ := json.Marshal(v)
-		return string(jsonBytes)
-	case map[string]string:
-		jsonBytes, _ := json.Marshal(v)
-		return string(jsonBytes)
-	default:
-		jsonBytes, _ := json.Marshal(v)
-		return string(jsonBytes)
-	}
+// newStructuredToolResult creates an MCP tool result with structured JSON content.
+//
+// This function creates a CallToolResult that includes:
+//
+// 1. StructuredContent field: Contains the raw Go data structure, allowing MCP
+//    clients that support structured output to parse it directly as typed data.
+//
+// 2. Content array with text fallback: Contains the JSON-serialized version of
+//    the data as a TextContent entry for backward compatibility with clients
+//    that don't support structured output.
+//
+// The mcp-go v0.43.2 SDK provides multiple helper functions for structured output:
+//   - NewToolResultJSON[T](data T) - Generic function with explicit error handling
+//   - NewToolResultStructured(data, fallbackText) - With custom fallback text
+//   - NewToolResultStructuredOnly(data) - Auto-generates JSON fallback text
+//
+// This implementation uses NewToolResultStructuredOnly for simplicity, which
+// automatically creates a JSON string fallback for backward compatibility.
+//
+// Note on MIME types: The MCP protocol uses the StructuredContent field (not
+// MIME types on content blocks) to indicate structured data. MCP clients should
+// check for the presence of StructuredContent to determine if the response
+// contains parseable structured data.
+func newStructuredToolResult(result interface{}) *mcp.CallToolResult {
+	// Use the SDK's NewToolResultStructuredOnly function which:
+	// - Sets the StructuredContent field to the provided data
+	// - Creates a JSON string fallback in the Content array for backward compatibility
+	// - Handles marshaling errors gracefully by including error message in fallback
+	return mcp.NewToolResultStructuredOnly(result)
 }
 
 // GetPaperlessClient returns the Paperless API client

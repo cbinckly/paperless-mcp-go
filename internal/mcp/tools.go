@@ -773,6 +773,57 @@ func (s *Server) registerTools() {
 	}
 
 
+
+	// Register the bulk_edit_documents tool
+	err = s.RegisterTool(Tool{
+		Name:        "bulk_edit_documents",
+		Description: "Perform bulk edit operations on multiple documents",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"document_ids": map[string]interface{}{
+					"type":        "array",
+					"description": "Array of document IDs to edit",
+					"items": map[string]interface{}{
+						"type": "integer",
+					},
+				},
+				"add_tags": map[string]interface{}{
+					"type":        "array",
+					"description": "Array of tag IDs to add (optional)",
+					"items": map[string]interface{}{
+						"type": "integer",
+					},
+				},
+				"remove_tags": map[string]interface{}{
+					"type":        "array",
+					"description": "Array of tag IDs to remove (optional)",
+					"items": map[string]interface{}{
+						"type": "integer",
+					},
+				},
+				"set_correspondent": map[string]interface{}{
+					"type":        "integer",
+					"description": "Correspondent ID to set (optional)",
+				},
+				"set_document_type": map[string]interface{}{
+					"type":        "integer",
+					"description": "Document type ID to set (optional)",
+				},
+				"set_storage_path": map[string]interface{}{
+					"type":        "integer",
+					"description": "Storage path ID to set (optional)",
+				},
+			},
+			"required": []string{"document_ids"},
+		},
+		Handler: s.handleBulkEditDocuments,
+	})
+	if err != nil {
+		slog.Error("Failed to register bulk_edit_documents tool", "error", err)
+	}
+
+
 	slog.Info("Tool registration complete", "total_tools", len(s.tools))
 }
 

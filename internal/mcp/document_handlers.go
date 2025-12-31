@@ -341,3 +341,94 @@ func (s *Server) handleDeleteDocument(ctx context.Context, args map[string]inter
 		"message":     "Document deleted successfully",
 	}, nil
 }
+
+
+// handleBulkEditDocuments handles the bulk_edit_documents tool
+func (s *Server) handleBulkEditDocuments(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+	// Extract and validate document_ids
+	docIDsInterface, ok := args["document_ids"].([]interface{})
+	if !ok || len(docIDsInterface) == 0 {
+		return nil, fmt.Errorf("document_ids parameter is required and must be a non-empty array")
+	}
+
+	// Convert to []int
+	documentIDs := make([]int, len(docIDsInterface))
+	for i, idInterface := range docIDsInterface {
+		idFloat, ok := idInterface.(float64)
+		if !ok {
+			return nil, fmt.Errorf("document_ids must contain only integers")
+		}
+		documentIDs[i] = int(idFloat)
+		if documentIDs[i] < 1 {
+			return nil, fmt.Errorf("all document IDs must be positive integers")
+		}
+	}
+
+	// Extract operations
+	operations := make(map[string]interface{})
+
+	// Handle add_tags operation
+	if addTags, ok := args["add_tags"].([]interface{}); ok && len(addTags) > 0 {
+		tagIDs := make([]int, len(addTags))
+		for i, tagInterface := range addTags {
+			tagFloat, ok := tagInterface.(float64)
+			if !ok {
+				return nil, fmt.Errorf("add_tags must contain only integers")
+			}
+			tagIDs[i] = int(tagFloat)
+		}
+		operations["add_tags"] = tagIDs
+	}
+
+	// Handle remove_tags operation
+	if removeTags, ok := args["remove_tags"].([]interface{}); ok && len(removeTags) > 0 {
+		tagIDs := make([]int, len(removeTags))
+		for i, tagInterface := range removeTags {
+			tagFloat, ok := tagInterface.(float64)
+			if !ok {
+				return nil, fmt.Errorf("remove_tags must contain only integers")
+			}
+			tagIDs[i] = int(tagFloat)
+		}
+		operations["remove_tags"] = tagIDs
+	}
+
+	// Handle set_correspondent operation
+	if correspondent, ok := args["set_correspondent"].(float64); ok {
+		operations["correspondent"] = int(correspondent)
+	}
+
+	// Handle set_document_type operation
+	if docType, ok := args["set_document_type"].(float64); ok {
+		operations["document_type"] = int(docType)
+	}
+
+	// Handle set_storage_path operation
+	if storagePath, ok := args["set_storage_path"].(float64); ok {
+		operations["storage_path"] = int(storagePath)
+	}
+
+	// Validate at least one operation is specified
+	if len(operations) == 0 {
+		return nil, fmt.Errorf("at least one operation must be specified")
+	}
+
+	slog.Debug("Bulk editing documents",
+		"document_count", len(documentIDs),
+		"operations", len(operations))
+
+	// Call Paperless API
+	response, err := s.paperlessClient.BulkEditDocuments(ctx, documentIDs, operations)
+	if err != nil {
+		slog.Error("Failed to bulk edit documents",
+			"document_count", len(documentIDs),
+			"error", err)
+		return nil, fmt.Errorf("failed to bulk edit documents: %w", err)
+	}
+
+	slog.Info("Bulk edit completed successfully",
+		"document_count", len(documentIDs),
+		"operations", len(operations))
+
+	return response, nil
+}

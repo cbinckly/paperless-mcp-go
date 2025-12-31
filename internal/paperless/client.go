@@ -1109,3 +1109,41 @@ func (c *Client) DeleteCustomField(ctx context.Context, fieldID int) error {
 
 	return nil
 }
+
+
+// BulkEditDocuments performs bulk edit operations on multiple documents
+func (c *Client) BulkEditDocuments(ctx context.Context, documentIDs []int, operations map[string]interface{}) (map[string]interface{}, error) {
+	path := "/api/documents/bulk_edit/"
+
+	slog.Debug("Bulk editing documents",
+		"document_count", len(documentIDs),
+		"operations", len(operations))
+
+	// Build request body
+	requestBody := map[string]interface{}{
+		"documents": documentIDs,
+	}
+
+	// Merge operations into request body
+	for key, value := range operations {
+		requestBody[key] = value
+	}
+
+	// Make POST request
+	bodyBytes, err := c.POST(ctx, path, requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var response map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		slog.Error("Failed to parse bulk edit response", "error", err)
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	slog.Info("Bulk edit completed successfully",
+		"document_count", len(documentIDs))
+
+	return response, nil
+}

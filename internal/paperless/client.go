@@ -430,6 +430,134 @@ func (c *Client) DeleteDocument(ctx context.Context, documentID int) error {
 	return nil
 }
 
+// ListCorrespondents retrieves all correspondents with pagination
+func (c *Client) ListCorrespondents(ctx context.Context, page, pageSize int) (*PaginatedResponse, error) {
+	// Validate and set defaults for pagination
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = DefaultPageSize
+	} else if pageSize > MaxPageSize {
+		pageSize = MaxPageSize
+	}
+
+	path := fmt.Sprintf("/api/correspondents/?page=%d&page_size=%d", page, pageSize)
+
+	slog.Debug("Listing correspondents", "page", page, "page_size", pageSize)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var response PaginatedResponse
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		slog.Error("Failed to parse correspondents response", "error", err)
+		return nil, fmt.Errorf("failed to parse correspondents: %w", err)
+	}
+
+	return &response, nil
+}
+
+// GetCorrespondent retrieves a correspondent by ID
+func (c *Client) GetCorrespondent(ctx context.Context, correspondentID int) (*Correspondent, error) {
+	path := fmt.Sprintf("/api/correspondents/%d/", correspondentID)
+
+	slog.Debug("Getting correspondent", "correspondent_id", correspondentID)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var correspondent Correspondent
+	if err := json.Unmarshal(bodyBytes, &correspondent); err != nil {
+		slog.Error("Failed to parse correspondent response",
+			"correspondent_id", correspondentID,
+			"error", err)
+		return nil, fmt.Errorf("failed to parse correspondent: %w", err)
+	}
+
+	return &correspondent, nil
+}
+
+// CreateCorrespondent creates a new correspondent
+func (c *Client) CreateCorrespondent(ctx context.Context, correspondent *Correspondent) (*Correspondent, error) {
+	path := "/api/correspondents/"
+
+	slog.Debug("Creating correspondent", "name", correspondent.Name)
+
+	// Make POST request
+	bodyBytes, err := c.POST(ctx, path, correspondent)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var createdCorrespondent Correspondent
+	if err := json.Unmarshal(bodyBytes, &createdCorrespondent); err != nil {
+		slog.Error("Failed to parse created correspondent response", "error", err)
+		return nil, fmt.Errorf("failed to parse created correspondent: %w", err)
+	}
+
+	slog.Info("Correspondent created successfully",
+		"correspondent_id", createdCorrespondent.ID,
+		"name", createdCorrespondent.Name)
+
+	return &createdCorrespondent, nil
+}
+
+// UpdateCorrespondent updates a correspondent's information
+func (c *Client) UpdateCorrespondent(ctx context.Context, correspondentID int, updates map[string]interface{}) (*Correspondent, error) {
+	path := fmt.Sprintf("/api/correspondents/%d/", correspondentID)
+
+	slog.Debug("Updating correspondent",
+		"correspondent_id", correspondentID,
+		"fields", len(updates))
+
+	// Make PATCH request
+	bodyBytes, err := c.PATCH(ctx, path, updates)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var updatedCorrespondent Correspondent
+	if err := json.Unmarshal(bodyBytes, &updatedCorrespondent); err != nil {
+		slog.Error("Failed to parse updated correspondent response",
+			"correspondent_id", correspondentID,
+			"error", err)
+		return nil, fmt.Errorf("failed to parse updated correspondent: %w", err)
+	}
+
+	slog.Info("Correspondent updated successfully",
+		"correspondent_id", correspondentID,
+		"name", updatedCorrespondent.Name)
+
+	return &updatedCorrespondent, nil
+}
+
+// DeleteCorrespondent deletes a correspondent by ID
+func (c *Client) DeleteCorrespondent(ctx context.Context, correspondentID int) error {
+	path := fmt.Sprintf("/api/correspondents/%d/", correspondentID)
+
+	slog.Debug("Deleting correspondent", "correspondent_id", correspondentID)
+
+	// Make DELETE request
+	err := c.DELETE(ctx, path)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Correspondent deleted successfully", "correspondent_id", correspondentID)
+	return nil
+}
+
 // parseError parses an error response from the API
 func parseError(statusCode int, body []byte) error {
 	var errorData map[string]interface{}

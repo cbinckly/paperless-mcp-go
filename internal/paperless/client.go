@@ -968,3 +968,144 @@ func (c *Client) DeleteStoragePath(ctx context.Context, pathID int) error {
 	slog.Info("Storage path deleted successfully", "path_id", pathID)
 	return nil
 }
+
+
+// ListCustomFields retrieves a paginated list of custom fields
+func (c *Client) ListCustomFields(ctx context.Context, page, pageSize int) (*PaginatedResponse, error) {
+	// Validate and set defaults for pagination
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = DefaultPageSize
+	} else if pageSize > MaxPageSize {
+		pageSize = MaxPageSize
+	}
+
+	// Build query parameters
+	params := url.Values{}
+	params.Set("page", fmt.Sprintf("%d", page))
+	params.Set("page_size", fmt.Sprintf("%d", pageSize))
+
+	path := "/api/custom_fields/?" + params.Encode()
+
+	slog.Debug("Listing custom fields",
+		"page", page,
+		"page_size", pageSize)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse paginated response
+	var response PaginatedResponse
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		slog.Error("Failed to parse custom fields list", "error", err)
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	slog.Info("Custom fields listed successfully",
+		"count", response.Count,
+		"page", page)
+
+	return &response, nil
+}
+
+// GetCustomField retrieves a custom field by ID
+func (c *Client) GetCustomField(ctx context.Context, fieldID int) (*CustomField, error) {
+	path := fmt.Sprintf("/api/custom_fields/%d/", fieldID)
+
+	slog.Debug("Getting custom field", "field_id", fieldID)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var field CustomField
+	if err := json.Unmarshal(bodyBytes, &field); err != nil {
+		slog.Error("Failed to parse custom field", "error", err)
+		return nil, fmt.Errorf("failed to parse custom field: %w", err)
+	}
+
+	slog.Info("Custom field retrieved successfully",
+		"field_id", fieldID,
+		"name", field.Name)
+
+	return &field, nil
+}
+
+// CreateCustomField creates a new custom field
+func (c *Client) CreateCustomField(ctx context.Context, field *CustomField) (*CustomField, error) {
+	path := "/api/custom_fields/"
+
+	slog.Debug("Creating custom field", "name", field.Name)
+
+	// Make POST request
+	bodyBytes, err := c.POST(ctx, path, field)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var createdField CustomField
+	if err := json.Unmarshal(bodyBytes, &createdField); err != nil {
+		slog.Error("Failed to parse created custom field", "error", err)
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	slog.Info("Custom field created successfully",
+		"field_id", createdField.ID,
+		"name", createdField.Name)
+
+	return &createdField, nil
+}
+
+// UpdateCustomField updates a custom field's information
+func (c *Client) UpdateCustomField(ctx context.Context, fieldID int, updates map[string]interface{}) (*CustomField, error) {
+	path := fmt.Sprintf("/api/custom_fields/%d/", fieldID)
+
+	slog.Debug("Updating custom field",
+		"field_id", fieldID,
+		"fields", len(updates))
+
+	// Make PATCH request
+	bodyBytes, err := c.PATCH(ctx, path, updates)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var field CustomField
+	if err := json.Unmarshal(bodyBytes, &field); err != nil {
+		slog.Error("Failed to parse updated custom field", "error", err)
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	slog.Info("Custom field updated successfully",
+		"field_id", fieldID,
+		"name", field.Name)
+
+	return &field, nil
+}
+
+// DeleteCustomField deletes a custom field
+func (c *Client) DeleteCustomField(ctx context.Context, fieldID int) error {
+	path := fmt.Sprintf("/api/custom_fields/%d/", fieldID)
+
+	slog.Debug("Deleting custom field", "field_id", fieldID)
+
+	// Make DELETE request
+	err := c.DELETE(ctx, path)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Custom field deleted successfully", "field_id", fieldID)
+
+	return nil
+}

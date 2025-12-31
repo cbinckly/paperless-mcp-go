@@ -655,6 +655,124 @@ func (s *Server) registerTools() {
 	}
 
 
+
+	// Register the list_custom_fields tool
+	err = s.RegisterTool(Tool{
+		Name:        "list_custom_fields",
+		Description: "List all custom fields with pagination support",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"page": map[string]interface{}{
+					"type":        "integer",
+					"description": "Page number (1-based, optional, default: 1)",
+				},
+				"page_size": map[string]interface{}{
+					"type":        "integer",
+					"description": "Number of results per page (optional, default: 25, max: 100)",
+				},
+			},
+			"required": []string{},
+		},
+		Handler: s.handleListCustomFields,
+	})
+	if err != nil {
+		slog.Error("Failed to register list_custom_fields tool", "error", err)
+	}
+
+	// Register the get_custom_field tool
+	err = s.RegisterTool(Tool{
+		Name:        "get_custom_field",
+		Description: "Get a custom field by ID",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"field_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the custom field to retrieve",
+				},
+			},
+			"required": []string{"field_id"},
+		},
+		Handler: s.handleGetCustomField,
+	})
+	if err != nil {
+		slog.Error("Failed to register get_custom_field tool", "error", err)
+	}
+
+	// Register the create_custom_field tool
+	err = s.RegisterTool(Tool{
+		Name:        "create_custom_field",
+		Description: "Create a new custom field in Paperless",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the custom field",
+				},
+				"data_type": map[string]interface{}{
+					"type":        "string",
+					"description": "Data type of the custom field (e.g., string, integer, boolean, date, url)",
+				},
+			},
+			"required": []string{"name", "data_type"},
+		},
+		Handler: s.handleCreateCustomField,
+	})
+	if err != nil {
+		slog.Error("Failed to register create_custom_field tool", "error", err)
+	}
+
+	// Register the update_custom_field tool
+	err = s.RegisterTool(Tool{
+		Name:        "update_custom_field",
+		Description: "Update a custom field's information",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"field_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the custom field to update",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "New name (optional)",
+				},
+				"data_type": map[string]interface{}{
+					"type":        "string",
+					"description": "New data type (optional)",
+				},
+			},
+			"required": []string{"field_id"},
+		},
+		Handler: s.handleUpdateCustomField,
+	})
+	if err != nil {
+		slog.Error("Failed to register update_custom_field tool", "error", err)
+	}
+
+	// Register the delete_custom_field tool
+	err = s.RegisterTool(Tool{
+		Name:        "delete_custom_field",
+		Description: "Delete a custom field from Paperless",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"field_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the custom field to delete",
+				},
+			},
+			"required": []string{"field_id"},
+		},
+		Handler: s.handleDeleteCustomField,
+	})
+	if err != nil {
+		slog.Error("Failed to register delete_custom_field tool", "error", err)
+	}
+
+
 	slog.Info("Tool registration complete", "total_tools", len(s.tools))
 }
 

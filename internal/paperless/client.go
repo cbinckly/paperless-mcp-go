@@ -687,6 +687,136 @@ func (c *Client) DeleteDocumentType(ctx context.Context, typeID int) error {
 	return nil
 }
 
+
+// ListTags retrieves all tags with pagination
+func (c *Client) ListTags(ctx context.Context, page, pageSize int) (*PaginatedResponse, error) {
+	// Validate and set defaults for pagination
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = DefaultPageSize
+	} else if pageSize > MaxPageSize {
+		pageSize = MaxPageSize
+	}
+
+	path := fmt.Sprintf("/api/tags/?page=%d&page_size=%d", page, pageSize)
+
+	slog.Debug("Listing tags", "page", page, "page_size", pageSize)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var response PaginatedResponse
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		slog.Error("Failed to parse tags response", "error", err)
+		return nil, fmt.Errorf("failed to parse tags: %w", err)
+	}
+
+	return &response, nil
+}
+
+// GetTag retrieves a tag by ID
+func (c *Client) GetTag(ctx context.Context, tagID int) (*Tag, error) {
+	path := fmt.Sprintf("/api/tags/%d/", tagID)
+
+	slog.Debug("Getting tag", "tag_id", tagID)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var tag Tag
+	if err := json.Unmarshal(bodyBytes, &tag); err != nil {
+		slog.Error("Failed to parse tag response",
+			"tag_id", tagID,
+			"error", err)
+		return nil, fmt.Errorf("failed to parse tag: %w", err)
+	}
+
+	return &tag, nil
+}
+
+// CreateTag creates a new tag
+func (c *Client) CreateTag(ctx context.Context, tag *Tag) (*Tag, error) {
+	path := "/api/tags/"
+
+	slog.Debug("Creating tag", "name", tag.Name)
+
+	// Make POST request
+	bodyBytes, err := c.POST(ctx, path, tag)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var createdTag Tag
+	if err := json.Unmarshal(bodyBytes, &createdTag); err != nil {
+		slog.Error("Failed to parse created tag response", "error", err)
+		return nil, fmt.Errorf("failed to parse created tag: %w", err)
+	}
+
+	slog.Info("Tag created successfully",
+		"tag_id", createdTag.ID,
+		"name", createdTag.Name)
+
+	return &createdTag, nil
+}
+
+// UpdateTag updates a tag's information
+func (c *Client) UpdateTag(ctx context.Context, tagID int, updates map[string]interface{}) (*Tag, error) {
+	path := fmt.Sprintf("/api/tags/%d/", tagID)
+
+	slog.Debug("Updating tag",
+		"tag_id", tagID,
+		"fields", len(updates))
+
+	// Make PATCH request
+	bodyBytes, err := c.PATCH(ctx, path, updates)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var updatedTag Tag
+	if err := json.Unmarshal(bodyBytes, &updatedTag); err != nil {
+		slog.Error("Failed to parse updated tag response",
+			"tag_id", tagID,
+			"error", err)
+		return nil, fmt.Errorf("failed to parse updated tag: %w", err)
+	}
+
+	slog.Info("Tag updated successfully",
+		"tag_id", tagID,
+		"name", updatedTag.Name)
+
+	return &updatedTag, nil
+}
+
+// DeleteTag deletes a tag by ID
+func (c *Client) DeleteTag(ctx context.Context, tagID int) error {
+	path := fmt.Sprintf("/api/tags/%d/", tagID)
+
+	slog.Debug("Deleting tag", "tag_id", tagID)
+
+	// Make DELETE request
+	err := c.DELETE(ctx, path)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Tag deleted successfully", "tag_id", tagID)
+	return nil
+}
+
+
 // parseError parses an error response from the API
 func parseError(statusCode int, body []byte) error {
 	var errorData map[string]interface{}

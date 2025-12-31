@@ -7,7 +7,7 @@ An MCP (Model Context Protocol) Server for [Paperless-ngx](https://docs.paperles
 - **Complete Document Management**: Search, retrieve, create, update, and delete documents
 - **Bulk Operations**: Efficiently edit multiple documents at once
 - **Metadata Management**: Full CRUD operations for correspondents, document types, tags, storage paths, and custom fields
-- **Dual Transport Modes**: Support for both stdio and HTTP/SSE transports
+- **Dual Transport Modes**: Support for both stdio and HTTP Streaming transports
 - **Docker Support**: Multi-stage Docker builds with security best practices
 - **Comprehensive Logging**: Structured logging with configurable levels
 - **Type-Safe**: Built with Go 1.23 for reliability and performance
@@ -143,7 +143,7 @@ export PAPERLESS_TOKEN=your_token_here
 
 ### HTTP Transport
 
-HTTP transport runs the server as a standalone service:
+HTTP transport runs the server as a standalone service using the modern StreamableHTTP protocol:
 
 ```bash
 # Set environment variables

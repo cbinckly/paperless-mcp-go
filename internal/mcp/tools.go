@@ -373,10 +373,7 @@ func (s *Server) registerTools() {
 	}
 
 
-	// Register the list_document_types tool
-	err = s.RegisterTool(Tool{
-		Name:        "list_document_types",
-		Description: "List all document types with pagination support",
+
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
@@ -391,6 +388,7 @@ func (s *Server) registerTools() {
 			},
 			"required": []string{},
 		},
+<<<<<<< HEAD
 		Handler: s.handleListDocumentTypes,
 	})
 	if err != nil {
@@ -421,12 +419,52 @@ func (s *Server) registerTools() {
 	err = s.RegisterTool(Tool{
 		Name:        "create_document_type",
 		Description: "Create a new document type in Paperless",
+=======
+		Handler: s.handleListStoragePaths,
+	})
+	if err != nil {
+		slog.Error("Failed to register list_storage_paths tool", "error", err)
+	}
+
+	// Register the get_storage_path tool
+	err = s.RegisterTool(Tool{
+		Name:        "get_storage_path",
+		Description: "Get a storage path by ID",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"storage_path_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the storage path to retrieve",
+				},
+			},
+			"required": []string{"storage_path_id"},
+		},
+		Handler: s.handleGetStoragePath,
+	})
+	if err != nil {
+		slog.Error("Failed to register get_storage_path tool", "error", err)
+	}
+
+	// Register the create_storage_path tool
+	err = s.RegisterTool(Tool{
+		Name:        "create_storage_path",
+		Description: "Create a new storage path in Paperless",
+>>>>>>> 0aab81c (feat(storage-paths): Implement Storage Path Management Tools for Issue #10)
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
 				"name": map[string]interface{}{
 					"type":        "string",
+<<<<<<< HEAD
 					"description": "Name of the document type",
+=======
+					"description": "Name of the storage path",
+				},
+				"path": map[string]interface{}{
+					"type":        "string",
+					"description": "The path pattern for document storage",
+>>>>>>> 0aab81c (feat(storage-paths): Implement Storage Path Management Tools for Issue #10)
 				},
 				"match": map[string]interface{}{
 					"type":        "string",
@@ -441,6 +479,7 @@ func (s *Server) registerTools() {
 					"description": "Case insensitive matching (optional)",
 				},
 			},
+<<<<<<< HEAD
 			"required": []string{"name"},
 		},
 		Handler: s.handleCreateDocumentType,
@@ -459,11 +498,38 @@ func (s *Server) registerTools() {
 				"document_type_id": map[string]interface{}{
 					"type":        "integer",
 					"description": "ID of the document type to update",
+=======
+			"required": []string{"name", "path"},
+		},
+		Handler: s.handleCreateStoragePath,
+	})
+	if err != nil {
+		slog.Error("Failed to register create_storage_path tool", "error", err)
+	}
+
+	// Register the update_storage_path tool
+	err = s.RegisterTool(Tool{
+		Name:        "update_storage_path",
+		Description: "Update a storage path's information",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"storage_path_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the storage path to update",
+>>>>>>> 0aab81c (feat(storage-paths): Implement Storage Path Management Tools for Issue #10)
 				},
 				"name": map[string]interface{}{
 					"type":        "string",
 					"description": "New name (optional)",
 				},
+<<<<<<< HEAD
+=======
+				"path": map[string]interface{}{
+					"type":        "string",
+					"description": "New path pattern (optional)",
+				},
+>>>>>>> 0aab81c (feat(storage-paths): Implement Storage Path Management Tools for Issue #10)
 				"match": map[string]interface{}{
 					"type":        "string",
 					"description": "New matching pattern (optional)",
@@ -477,6 +543,7 @@ func (s *Server) registerTools() {
 					"description": "Case insensitive matching (optional)",
 				},
 			},
+<<<<<<< HEAD
 			"required": []string{"document_type_id"},
 		},
 		Handler: s.handleUpdateDocumentType,
@@ -503,6 +570,34 @@ func (s *Server) registerTools() {
 	})
 	if err != nil {
 		slog.Error("Failed to register delete_document_type tool", "error", err)
+=======
+			"required": []string{"storage_path_id"},
+		},
+		Handler: s.handleUpdateStoragePath,
+	})
+	if err != nil {
+		slog.Error("Failed to register update_storage_path tool", "error", err)
+	}
+
+	// Register the delete_storage_path tool
+	err = s.RegisterTool(Tool{
+		Name:        "delete_storage_path",
+		Description: "Delete a storage path from Paperless",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"storage_path_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the storage path to delete",
+				},
+			},
+			"required": []string{"storage_path_id"},
+		},
+		Handler: s.handleDeleteStoragePath,
+	})
+	if err != nil {
+		slog.Error("Failed to register delete_storage_path tool", "error", err)
+>>>>>>> 0aab81c (feat(storage-paths): Implement Storage Path Management Tools for Issue #10)
 	}
 
 	slog.Info("Tool registration complete", "total_tools", len(s.tools))

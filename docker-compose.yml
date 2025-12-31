@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  paperless-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: paperless-mcp-go:latest
+    container_name: paperless-mcp-server
+    
+    # Environment variables
+    environment:
+      # Required
+      - PAPERLESS_URL=${PAPERLESS_URL}
+      - PAPERLESS_TOKEN=${PAPERLESS_TOKEN}
+      
+      # Optional
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - MCP_TRANSPORT=${MCP_TRANSPORT:-http}
+      - MCP_HTTP_PORT=${MCP_HTTP_PORT:-8080}
+    
+    # Port mapping (only needed for HTTP transport)
+    ports:
+      - "${MCP_HTTP_PORT:-8080}:8080"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits (optional, adjust as needed)
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M

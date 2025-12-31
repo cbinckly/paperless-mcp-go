@@ -239,6 +239,139 @@ func (s *Server) registerTools() {
 		slog.Error("Failed to register delete_document tool", "error", err)
 	}
 
+
+	// Register the list_correspondents tool
+	err = s.RegisterTool(Tool{
+		Name:        "list_correspondents",
+		Description: "List all correspondents with pagination support",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"page": map[string]interface{}{
+					"type":        "integer",
+					"description": "Page number (1-based, optional, default: 1)",
+				},
+				"page_size": map[string]interface{}{
+					"type":        "integer",
+					"description": "Number of results per page (optional, default: 25, max: 100)",
+				},
+			},
+			"required": []string{},
+		},
+		Handler: s.handleListCorrespondents,
+	})
+	if err != nil {
+		slog.Error("Failed to register list_correspondents tool", "error", err)
+	}
+
+	// Register the get_correspondent tool
+	err = s.RegisterTool(Tool{
+		Name:        "get_correspondent",
+		Description: "Get a correspondent by ID",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"correspondent_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the correspondent to retrieve",
+				},
+			},
+			"required": []string{"correspondent_id"},
+		},
+		Handler: s.handleGetCorrespondent,
+	})
+	if err != nil {
+		slog.Error("Failed to register get_correspondent tool", "error", err)
+	}
+
+	// Register the create_correspondent tool
+	err = s.RegisterTool(Tool{
+		Name:        "create_correspondent",
+		Description: "Create a new correspondent in Paperless",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the correspondent",
+				},
+				"match": map[string]interface{}{
+					"type":        "string",
+					"description": "Matching text pattern (optional)",
+				},
+				"matching_algorithm": map[string]interface{}{
+					"type":        "integer",
+					"description": "Matching algorithm type (optional)",
+				},
+				"is_insensitive": map[string]interface{}{
+					"type":        "boolean",
+					"description": "Case insensitive matching (optional)",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleCreateCorrespondent,
+	})
+	if err != nil {
+		slog.Error("Failed to register create_correspondent tool", "error", err)
+	}
+
+	// Register the update_correspondent tool
+	err = s.RegisterTool(Tool{
+		Name:        "update_correspondent",
+		Description: "Update a correspondent's information",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"correspondent_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the correspondent to update",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "New name (optional)",
+				},
+				"match": map[string]interface{}{
+					"type":        "string",
+					"description": "New matching pattern (optional)",
+				},
+				"matching_algorithm": map[string]interface{}{
+					"type":        "integer",
+					"description": "New matching algorithm (optional)",
+				},
+				"is_insensitive": map[string]interface{}{
+					"type":        "boolean",
+					"description": "Case insensitive matching (optional)",
+				},
+			},
+			"required": []string{"correspondent_id"},
+		},
+		Handler: s.handleUpdateCorrespondent,
+	})
+	if err != nil {
+		slog.Error("Failed to register update_correspondent tool", "error", err)
+	}
+
+	// Register the delete_correspondent tool
+	err = s.RegisterTool(Tool{
+		Name:        "delete_correspondent",
+		Description: "Delete a correspondent from Paperless",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"correspondent_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the correspondent to delete",
+				},
+			},
+			"required": []string{"correspondent_id"},
+		},
+		Handler: s.handleDeleteCorrespondent,
+	})
+	if err != nil {
+		slog.Error("Failed to register delete_correspondent tool", "error", err)
+	}
+
 	slog.Info("Tool registration complete", "total_tools", len(s.tools))
 }
 

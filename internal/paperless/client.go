@@ -709,3 +709,132 @@ func parseError(statusCode int, body []byte) error {
 
 	return NewError(statusCode, message, errorData)
 }
+
+
+// ListStoragePaths retrieves all storage paths with pagination
+func (c *Client) ListStoragePaths(ctx context.Context, page, pageSize int) (*PaginatedResponse, error) {
+	// Validate and set defaults for pagination
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = DefaultPageSize
+	} else if pageSize > MaxPageSize {
+		pageSize = MaxPageSize
+	}
+
+	path := fmt.Sprintf("/api/storage_paths/?page=%d&page_size=%d", page, pageSize)
+
+	slog.Debug("Listing storage paths", "page", page, "page_size", pageSize)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var response PaginatedResponse
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		slog.Error("Failed to parse storage paths response", "error", err)
+		return nil, fmt.Errorf("failed to parse storage paths: %w", err)
+	}
+
+	return &response, nil
+}
+
+// GetStoragePath retrieves a storage path by ID
+func (c *Client) GetStoragePath(ctx context.Context, pathID int) (*StoragePath, error) {
+	path := fmt.Sprintf("/api/storage_paths/%d/", pathID)
+
+	slog.Debug("Getting storage path", "path_id", pathID)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var storagePath StoragePath
+	if err := json.Unmarshal(bodyBytes, &storagePath); err != nil {
+		slog.Error("Failed to parse storage path response",
+			"path_id", pathID,
+			"error", err)
+		return nil, fmt.Errorf("failed to parse storage path: %w", err)
+	}
+
+	return &storagePath, nil
+}
+
+// CreateStoragePath creates a new storage path
+func (c *Client) CreateStoragePath(ctx context.Context, storagePath *StoragePath) (*StoragePath, error) {
+	path := "/api/storage_paths/"
+
+	slog.Debug("Creating storage path", "name", storagePath.Name)
+
+	// Make POST request
+	bodyBytes, err := c.POST(ctx, path, storagePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var createdStoragePath StoragePath
+	if err := json.Unmarshal(bodyBytes, &createdStoragePath); err != nil {
+		slog.Error("Failed to parse created storage path response", "error", err)
+		return nil, fmt.Errorf("failed to parse created storage path: %w", err)
+	}
+
+	slog.Info("Storage path created successfully",
+		"path_id", createdStoragePath.ID,
+		"name", createdStoragePath.Name)
+
+	return &createdStoragePath, nil
+}
+
+// UpdateStoragePath updates a storage path's information
+func (c *Client) UpdateStoragePath(ctx context.Context, pathID int, updates map[string]interface{}) (*StoragePath, error) {
+	path := fmt.Sprintf("/api/storage_paths/%d/", pathID)
+
+	slog.Debug("Updating storage path",
+		"path_id", pathID,
+		"fields", len(updates))
+
+	// Make PATCH request
+	bodyBytes, err := c.PATCH(ctx, path, updates)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var updatedStoragePath StoragePath
+	if err := json.Unmarshal(bodyBytes, &updatedStoragePath); err != nil {
+		slog.Error("Failed to parse updated storage path response",
+			"path_id", pathID,
+			"error", err)
+		return nil, fmt.Errorf("failed to parse updated storage path: %w", err)
+	}
+
+	slog.Info("Storage path updated successfully",
+		"path_id", pathID,
+		"name", updatedStoragePath.Name)
+
+	return &updatedStoragePath, nil
+}
+
+// DeleteStoragePath deletes a storage path by ID
+func (c *Client) DeleteStoragePath(ctx context.Context, pathID int) error {
+	path := fmt.Sprintf("/api/storage_paths/%d/", pathID)
+
+	slog.Debug("Deleting storage path", "path_id", pathID)
+
+	// Make DELETE request
+	err := c.DELETE(ctx, path)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Storage path deleted successfully", "path_id", pathID)
+	return nil
+}

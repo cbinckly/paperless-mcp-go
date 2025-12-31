@@ -372,6 +372,139 @@ func (s *Server) registerTools() {
 		slog.Error("Failed to register delete_correspondent tool", "error", err)
 	}
 
+
+	// Register the list_document_types tool
+	err = s.RegisterTool(Tool{
+		Name:        "list_document_types",
+		Description: "List all document types with pagination support",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"page": map[string]interface{}{
+					"type":        "integer",
+					"description": "Page number (1-based, optional, default: 1)",
+				},
+				"page_size": map[string]interface{}{
+					"type":        "integer",
+					"description": "Number of results per page (optional, default: 25, max: 100)",
+				},
+			},
+			"required": []string{},
+		},
+		Handler: s.handleListDocumentTypes,
+	})
+	if err != nil {
+		slog.Error("Failed to register list_document_types tool", "error", err)
+	}
+
+	// Register the get_document_type tool
+	err = s.RegisterTool(Tool{
+		Name:        "get_document_type",
+		Description: "Get a document type by ID",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"document_type_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the document type to retrieve",
+				},
+			},
+			"required": []string{"document_type_id"},
+		},
+		Handler: s.handleGetDocumentType,
+	})
+	if err != nil {
+		slog.Error("Failed to register get_document_type tool", "error", err)
+	}
+
+	// Register the create_document_type tool
+	err = s.RegisterTool(Tool{
+		Name:        "create_document_type",
+		Description: "Create a new document type in Paperless",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the document type",
+				},
+				"match": map[string]interface{}{
+					"type":        "string",
+					"description": "Matching text pattern (optional)",
+				},
+				"matching_algorithm": map[string]interface{}{
+					"type":        "integer",
+					"description": "Matching algorithm type (optional)",
+				},
+				"is_insensitive": map[string]interface{}{
+					"type":        "boolean",
+					"description": "Case insensitive matching (optional)",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleCreateDocumentType,
+	})
+	if err != nil {
+		slog.Error("Failed to register create_document_type tool", "error", err)
+	}
+
+	// Register the update_document_type tool
+	err = s.RegisterTool(Tool{
+		Name:        "update_document_type",
+		Description: "Update a document type's information",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"document_type_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the document type to update",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "New name (optional)",
+				},
+				"match": map[string]interface{}{
+					"type":        "string",
+					"description": "New matching pattern (optional)",
+				},
+				"matching_algorithm": map[string]interface{}{
+					"type":        "integer",
+					"description": "New matching algorithm (optional)",
+				},
+				"is_insensitive": map[string]interface{}{
+					"type":        "boolean",
+					"description": "Case insensitive matching (optional)",
+				},
+			},
+			"required": []string{"document_type_id"},
+		},
+		Handler: s.handleUpdateDocumentType,
+	})
+	if err != nil {
+		slog.Error("Failed to register update_document_type tool", "error", err)
+	}
+
+	// Register the delete_document_type tool
+	err = s.RegisterTool(Tool{
+		Name:        "delete_document_type",
+		Description: "Delete a document type from Paperless",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"document_type_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the document type to delete",
+				},
+			},
+			"required": []string{"document_type_id"},
+		},
+		Handler: s.handleDeleteDocumentType,
+	})
+	if err != nil {
+		slog.Error("Failed to register delete_document_type tool", "error", err)
+	}
+
 	slog.Info("Tool registration complete", "total_tools", len(s.tools))
 }
 

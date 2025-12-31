@@ -558,6 +558,135 @@ func (c *Client) DeleteCorrespondent(ctx context.Context, correspondentID int) e
 	return nil
 }
 
+
+// ListDocumentTypes retrieves all document types with pagination
+func (c *Client) ListDocumentTypes(ctx context.Context, page, pageSize int) (*PaginatedResponse, error) {
+	// Validate and set defaults for pagination
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = DefaultPageSize
+	} else if pageSize > MaxPageSize {
+		pageSize = MaxPageSize
+	}
+
+	path := fmt.Sprintf("/api/document_types/?page=%d&page_size=%d", page, pageSize)
+
+	slog.Debug("Listing document types", "page", page, "page_size", pageSize)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var response PaginatedResponse
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		slog.Error("Failed to parse document types response", "error", err)
+		return nil, fmt.Errorf("failed to parse document types: %w", err)
+	}
+
+	return &response, nil
+}
+
+// GetDocumentType retrieves a document type by ID
+func (c *Client) GetDocumentType(ctx context.Context, typeID int) (*DocumentType, error) {
+	path := fmt.Sprintf("/api/document_types/%d/", typeID)
+
+	slog.Debug("Getting document type", "document_type_id", typeID)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var docType DocumentType
+	if err := json.Unmarshal(bodyBytes, &docType); err != nil {
+		slog.Error("Failed to parse document type response",
+			"document_type_id", typeID,
+			"error", err)
+		return nil, fmt.Errorf("failed to parse document type: %w", err)
+	}
+
+	return &docType, nil
+}
+
+// CreateDocumentType creates a new document type
+func (c *Client) CreateDocumentType(ctx context.Context, docType *DocumentType) (*DocumentType, error) {
+	path := "/api/document_types/"
+
+	slog.Debug("Creating document type", "name", docType.Name)
+
+	// Make POST request
+	bodyBytes, err := c.POST(ctx, path, docType)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var createdDocType DocumentType
+	if err := json.Unmarshal(bodyBytes, &createdDocType); err != nil {
+		slog.Error("Failed to parse created document type response", "error", err)
+		return nil, fmt.Errorf("failed to parse created document type: %w", err)
+	}
+
+	slog.Info("Document type created successfully",
+		"document_type_id", createdDocType.ID,
+		"name", createdDocType.Name)
+
+	return &createdDocType, nil
+}
+
+// UpdateDocumentType updates a document type's information
+func (c *Client) UpdateDocumentType(ctx context.Context, typeID int, updates map[string]interface{}) (*DocumentType, error) {
+	path := fmt.Sprintf("/api/document_types/%d/", typeID)
+
+	slog.Debug("Updating document type",
+		"document_type_id", typeID,
+		"fields", len(updates))
+
+	// Make PATCH request
+	bodyBytes, err := c.PATCH(ctx, path, updates)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var updatedDocType DocumentType
+	if err := json.Unmarshal(bodyBytes, &updatedDocType); err != nil {
+		slog.Error("Failed to parse updated document type response",
+			"document_type_id", typeID,
+			"error", err)
+		return nil, fmt.Errorf("failed to parse updated document type: %w", err)
+	}
+
+	slog.Info("Document type updated successfully",
+		"document_type_id", typeID,
+		"name", updatedDocType.Name)
+
+	return &updatedDocType, nil
+}
+
+// DeleteDocumentType deletes a document type by ID
+func (c *Client) DeleteDocumentType(ctx context.Context, typeID int) error {
+	path := fmt.Sprintf("/api/document_types/%d/", typeID)
+
+	slog.Debug("Deleting document type", "document_type_id", typeID)
+
+	// Make DELETE request
+	err := c.DELETE(ctx, path)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Document type deleted successfully", "document_type_id", typeID)
+	return nil
+}
+
 // parseError parses an error response from the API
 func parseError(statusCode int, body []byte) error {
 	var errorData map[string]interface{}

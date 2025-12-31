@@ -18,14 +18,19 @@ const (
 	// ShutdownTimeout is the maximum time to wait for graceful shutdown
 	ShutdownTimeout = 10 * time.Second
 
-	// SSEEndpoint is the Server-Sent Events endpoint path
-	SSEEndpoint = "/sse"
+	// StreamableHTTPEndpoint is the HTTP streaming endpoint path
+	StreamableHTTPEndpoint = "/mcp"
 
-	// MessageEndpoint is the endpoint for receiving messages in HTTP mode
-	MessageEndpoint = "/message"
+	// HeartbeatInterval is the interval for connection heartbeat/keep-alive
+	HeartbeatInterval = 30 * time.Second
 
 	// HealthEndpoint is the health check endpoint
 	HealthEndpoint = "/health"
+
+	// HTTP server timeout constants
+	HTTPReadTimeout  = 30 * time.Second
+	HTTPWriteTimeout = 0                  // No timeout for streaming
+	HTTPIdleTimeout  = 120 * time.Second
 )
 
 // StartStdio starts the MCP server with stdio transport
@@ -62,18 +67,20 @@ func (s *Server) StartStdio(ctx context.Context) error {
 	}
 }
 
-// StartHTTP starts the MCP server with HTTP/SSE transport
+// StartHTTP starts the MCP server with StreamableHTTP transport
 func (s *Server) StartHTTP(ctx context.Context) error {
 	port := s.cfg.MCPHTTPPort
 	addr := ":" + port
-	slog.Info("Starting MCP server with HTTP transport",
+	slog.Info("Starting MCP server with StreamableHTTP transport",
 		"port", port,
-		"sse_endpoint", SSEEndpoint,
-		"message_endpoint", MessageEndpoint)
+		"endpoint", StreamableHTTPEndpoint,
+		"heartbeat_interval", HeartbeatInterval)
 
-	// Create the SSE server from the SDK
-	sseServer := server.NewSSEServer(s.mcpServer,
-		server.WithBaseURL(fmt.Sprintf("http://localhost:%s", port)),
+	// Create the StreamableHTTP server from the SDK
+	// This replaces the legacy SSE transport with the modern HTTP streaming standard
+	streamableServer := server.NewStreamableHTTPServer(s.mcpServer,
+		server.WithEndpointPath(StreamableHTTPEndpoint),
+		server.WithHeartbeatInterval(HeartbeatInterval),
 	)
 
 	// Create HTTP server mux
@@ -82,19 +89,17 @@ func (s *Server) StartHTTP(ctx context.Context) error {
 	// Setup health endpoint
 	mux.HandleFunc(HealthEndpoint, s.handleHealth)
 
-	// Setup SSE endpoint using the SDK's server
-	mux.HandleFunc(SSEEndpoint, sseServer.ServeHTTP)
-
-	// Setup message endpoint for receiving messages
-	mux.HandleFunc(MessageEndpoint, sseServer.ServeHTTP)
+	// Setup StreamableHTTP endpoint using the SDK's server
+	// StreamableHTTP handles POST (client messages), GET (server notifications), and DELETE (cleanup)
+	mux.Handle(StreamableHTTPEndpoint, streamableServer)
 
 	// Create HTTP server with timeouts
 	httpServer := &http.Server{
 		Addr:         addr,
 		Handler:      s.authMiddleware(mux),
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 0, // No timeout for SSE
-		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  HTTPReadTimeout,
+		WriteTimeout: HTTPWriteTimeout,
+		IdleTimeout:  HTTPIdleTimeout,
 	}
 
 	// Create a channel to listen for shutdown signals

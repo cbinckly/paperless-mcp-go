@@ -1,0 +1,257 @@
+package paperless
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"strings"
+	"time"
+)
+
+// Client constants
+const (
+	DefaultTimeout    = 30 * time.Second
+	AuthHeaderName    = "Authorization"
+	AuthTokenPrefix   = "Token"
+	ContentTypeJSON   = "application/json"
+	ContentTypeHeader = "Content-Type"
+)
+
+// Client represents a Paperless API client
+type Client struct {
+	baseURL    string
+	token      string
+	httpClient *http.Client
+}
+
+// New creates a new Paperless API client
+func New(baseURL, token string) *Client {
+	return &Client{
+		baseURL: strings.TrimSuffix(baseURL, "/"),
+		token:   token,
+		httpClient: &http.Client{
+			Timeout: DefaultTimeout,
+		},
+	}
+}
+
+// doRequest performs an HTTP request with authentication
+func (c *Client) doRequest(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
+	// Build full URL
+	url := c.baseURL + path
+
+	// Create request with context
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	if err != nil {
+		slog.Error("Failed to create HTTP request",
+			"method", method,
+			"url", url,
+			"error", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add authorization header
+	req.Header.Set(AuthHeaderName, fmt.Sprintf("%s %s", AuthTokenPrefix, c.token))
+
+	// Add content type for requests with body
+	if body != nil && (method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch) {
+		req.Header.Set(ContentTypeHeader, ContentTypeJSON)
+	}
+
+	// Log request (without sensitive data)
+	slog.Debug("Making API request",
+		"method", method,
+		"url", url)
+
+	// Execute request
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		slog.Error("HTTP request failed",
+			"method", method,
+			"url", url,
+			"error", err)
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+
+	// Log response
+	slog.Debug("Received API response",
+		"method", method,
+		"url", url,
+		"status", resp.StatusCode)
+
+	return resp, nil
+}
+
+// GET performs a GET request
+func (c *Client) GET(ctx context.Context, path string) ([]byte, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		slog.Error("Failed to read response body",
+			"path", path,
+			"error", err)
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Check for error status codes
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, parseError(resp.StatusCode, bodyBytes)
+	}
+
+	return bodyBytes, nil
+}
+
+// POST performs a POST request
+func (c *Client) POST(ctx context.Context, path string, body interface{}) ([]byte, error) {
+	var bodyReader io.Reader
+	if body != nil {
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			slog.Error("Failed to marshal request body",
+				"path", path,
+				"error", err)
+			return nil, fmt.Errorf("failed to marshal body: %w", err)
+		}
+		bodyReader = bytes.NewReader(bodyBytes)
+	}
+
+	resp, err := c.doRequest(ctx, http.MethodPost, path, bodyReader)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		slog.Error("Failed to read response body",
+			"path", path,
+			"error", err)
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, parseError(resp.StatusCode, bodyBytes)
+	}
+
+	return bodyBytes, nil
+}
+
+// PUT performs a PUT request
+func (c *Client) PUT(ctx context.Context, path string, body interface{}) ([]byte, error) {
+	var bodyReader io.Reader
+	if body != nil {
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			slog.Error("Failed to marshal request body",
+				"path", path,
+				"error", err)
+			return nil, fmt.Errorf("failed to marshal body: %w", err)
+		}
+		bodyReader = bytes.NewReader(bodyBytes)
+	}
+
+	resp, err := c.doRequest(ctx, http.MethodPut, path, bodyReader)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		slog.Error("Failed to read response body",
+			"path", path,
+			"error", err)
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, parseError(resp.StatusCode, bodyBytes)
+	}
+
+	return bodyBytes, nil
+}
+
+// PATCH performs a PATCH request
+func (c *Client) PATCH(ctx context.Context, path string, body interface{}) ([]byte, error) {
+	var bodyReader io.Reader
+	if body != nil {
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			slog.Error("Failed to marshal request body",
+				"path", path,
+				"error", err)
+			return nil, fmt.Errorf("failed to marshal body: %w", err)
+		}
+		bodyReader = bytes.NewReader(bodyBytes)
+	}
+
+	resp, err := c.doRequest(ctx, http.MethodPatch, path, bodyReader)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		slog.Error("Failed to read response body",
+			"path", path,
+			"error", err)
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, parseError(resp.StatusCode, bodyBytes)
+	}
+
+	return bodyBytes, nil
+}
+
+// DELETE performs a DELETE request
+func (c *Client) DELETE(ctx context.Context, path string) error {
+	resp, err := c.doRequest(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// DELETE can return 204 No Content or 200 OK
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return parseError(resp.StatusCode, bodyBytes)
+	}
+
+	return nil
+}
+
+// parseError parses an error response from the API
+func parseError(statusCode int, body []byte) error {
+	var errorData map[string]interface{}
+	if err := json.Unmarshal(body, &errorData); err != nil {
+		// If we can't parse as JSON, use the raw body as message
+		return NewError(statusCode, string(body), nil)
+	}
+
+	// Try to extract common error message fields
+	var message string
+	if msg, ok := errorData["detail"].(string); ok {
+		message = msg
+	} else if msg, ok := errorData["message"].(string); ok {
+		message = msg
+	} else if msg, ok := errorData["error"].(string); ok {
+		message = msg
+	} else {
+		message = "API request failed"
+	}
+
+	return NewError(statusCode, message, errorData)
+}

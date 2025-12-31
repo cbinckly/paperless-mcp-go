@@ -96,6 +96,149 @@ func (s *Server) registerTools() {
 		slog.Error("Failed to register find_similar_documents tool", "error", err)
 	}
 
+
+	// Register the get_document tool
+	err = s.RegisterTool(Tool{
+		Name:        "get_document",
+		Description: "Get a document by ID with all metadata",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"document_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the document to retrieve",
+				},
+			},
+			"required": []string{"document_id"},
+		},
+		Handler: s.handleGetDocument,
+	})
+	if err != nil {
+		slog.Error("Failed to register get_document tool", "error", err)
+	}
+
+	// Register the get_document_content tool
+	err = s.RegisterTool(Tool{
+		Name:        "get_document_content",
+		Description: "Get the text content of a document",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"document_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the document to retrieve content from",
+				},
+			},
+			"required": []string{"document_id"},
+		},
+		Handler: s.handleGetDocumentContent,
+	})
+	if err != nil {
+		slog.Error("Failed to register get_document_content tool", "error", err)
+	}
+
+	// Register the create_document tool
+	err = s.RegisterTool(Tool{
+		Name:        "create_document",
+		Description: "Create a new document in Paperless",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"title": map[string]interface{}{
+					"type":        "string",
+					"description": "Title of the document",
+				},
+				"correspondent": map[string]interface{}{
+					"type":        "integer",
+					"description": "Correspondent ID (optional)",
+				},
+				"document_type": map[string]interface{}{
+					"type":        "integer",
+					"description": "Document type ID (optional)",
+				},
+				"storage_path": map[string]interface{}{
+					"type":        "integer",
+					"description": "Storage path ID (optional)",
+				},
+				"tags": map[string]interface{}{
+					"type":        "array",
+					"description": "Array of tag IDs (optional)",
+					"items": map[string]interface{}{
+						"type": "integer",
+					},
+				},
+			},
+			"required": []string{"title"},
+		},
+		Handler: s.handleCreateDocument,
+	})
+	if err != nil {
+		slog.Error("Failed to register create_document tool", "error", err)
+	}
+
+	// Register the update_document tool
+	err = s.RegisterTool(Tool{
+		Name:        "update_document",
+		Description: "Update a document's metadata",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"document_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the document to update",
+				},
+				"title": map[string]interface{}{
+					"type":        "string",
+					"description": "New title (optional)",
+				},
+				"correspondent": map[string]interface{}{
+					"type":        "integer",
+					"description": "New correspondent ID (optional)",
+				},
+				"document_type": map[string]interface{}{
+					"type":        "integer",
+					"description": "New document type ID (optional)",
+				},
+				"storage_path": map[string]interface{}{
+					"type":        "integer",
+					"description": "New storage path ID (optional)",
+				},
+				"tags": map[string]interface{}{
+					"type":        "array",
+					"description": "New array of tag IDs (optional)",
+					"items": map[string]interface{}{
+						"type": "integer",
+					},
+				},
+			},
+			"required": []string{"document_id"},
+		},
+		Handler: s.handleUpdateDocument,
+	})
+	if err != nil {
+		slog.Error("Failed to register update_document tool", "error", err)
+	}
+
+	// Register the delete_document tool
+	err = s.RegisterTool(Tool{
+		Name:        "delete_document",
+		Description: "Delete a document from Paperless",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"document_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the document to delete",
+				},
+			},
+			"required": []string{"document_id"},
+		},
+		Handler: s.handleDeleteDocument,
+	})
+	if err != nil {
+		slog.Error("Failed to register delete_document tool", "error", err)
+	}
+
 	slog.Info("Tool registration complete", "total_tools", len(s.tools))
 }
 

@@ -2,8 +2,60 @@ package paperless
 
 import (
 	"encoding/json"
+	"fmt"
+	"log/slog"
+	"strings"
 	"time"
 )
+
+// Date format constants
+const (
+	DateOnlyFormat = "2006-01-02"
+)
+
+// FlexibleTime is a time.Time wrapper that can parse multiple date/time formats
+// It handles both RFC3339 timestamps and date-only strings from the Paperless API
+type FlexibleTime struct {
+	time.Time
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for flexible date parsing
+func (ft *FlexibleTime) UnmarshalJSON(data []byte) error {
+	// Remove quotes from JSON string
+	str := strings.Trim(string(data), `"`)
+	
+	// Handle empty string or null
+	if str == "" || str == "null" {
+		ft.Time = time.Time{}
+		return nil
+	}
+
+	// Try parsing as RFC3339 first (full timestamp with timezone)
+	if t, err := time.Parse(time.RFC3339, str); err == nil {
+		ft.Time = t
+		slog.Debug("Parsed time as RFC3339", "input", str, "result", t)
+		return nil
+	}
+
+	// Try parsing as date-only format
+	if t, err := time.Parse(DateOnlyFormat, str); err == nil {
+		ft.Time = t
+		slog.Debug("Parsed time as date-only", "input", str, "result", t)
+		return nil
+	}
+
+	// Both formats failed
+	return fmt.Errorf("unable to parse time '%s' as RFC3339 or date-only format", str)
+}
+
+// MarshalJSON implements JSON marshaling, outputting RFC3339 format
+func (ft FlexibleTime) MarshalJSON() ([]byte, error) {
+	// Marshal as RFC3339 format string for consistency
+	if ft.Time.IsZero() {
+		return []byte("null"), nil
+	}
+	return []byte(fmt.Sprintf(`"%s"`, ft.Time.Format(time.RFC3339))), nil
+}
 
 // PaginatedResponse represents a paginated API response
 type PaginatedResponse struct {
@@ -23,10 +75,10 @@ type Document struct {
 	Title               string               `json:"title"`
 	Content             string               `json:"content,omitempty"`
 	Tags                []int                `json:"tags"`
-	Created             time.Time            `json:"created"`
+	Created             FlexibleTime         `json:"created"`
 	CreatedDate         string               `json:"created_date"`
-	Modified            time.Time            `json:"modified"`
-	Added               time.Time            `json:"added"`
+	Modified            FlexibleTime         `json:"modified"`
+	Added               FlexibleTime         `json:"added"`
 	ArchiveSerialNumber *int                 `json:"archive_serial_number"`
 	OriginalFileName    string               `json:"original_file_name"`
 	ArchivedFileName    *string              `json:"archived_file_name"`
@@ -38,16 +90,16 @@ type Document struct {
 
 // Correspondent represents a document correspondent
 type Correspondent struct {
-	ID                 int       `json:"id"`
-	Slug               string    `json:"slug"`
-	Name               string    `json:"name"`
-	Match              string    `json:"match"`
-	MatchingAlgorithm  int       `json:"matching_algorithm"`
-	IsInsensitive      bool      `json:"is_insensitive"`
-	DocumentCount      int       `json:"document_count"`
-	LastCorrespondence time.Time `json:"last_correspondence,omitempty"`
-	Owner              int       `json:"owner,omitempty"`
-	UserCanChange      bool      `json:"user_can_change,omitempty"`
+	ID                 int          `json:"id"`
+	Slug               string       `json:"slug"`
+	Name               string       `json:"name"`
+	Match              string       `json:"match"`
+	MatchingAlgorithm  int          `json:"matching_algorithm"`
+	IsInsensitive      bool         `json:"is_insensitive"`
+	DocumentCount      int          `json:"document_count"`
+	LastCorrespondence FlexibleTime `json:"last_correspondence,omitempty"`
+	Owner              int          `json:"owner,omitempty"`
+	UserCanChange      bool         `json:"user_can_change,omitempty"`
 }
 
 // DocumentType represents a document type
@@ -107,11 +159,11 @@ type CustomFieldValue struct {
 
 // Note represents a document note
 type Note struct {
-	ID       int       `json:"id"`
-	Note     string    `json:"note"`
-	Created  time.Time `json:"created"`
-	Document int       `json:"document"`
-	User     *int      `json:"user"`
+	ID       int          `json:"id"`
+	Note     string       `json:"note"`
+	Created  FlexibleTime `json:"created"`
+	Document int          `json:"document"`
+	User     *int         `json:"user"`
 }
 
 // SearchResult represents a search result

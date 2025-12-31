@@ -318,6 +318,118 @@ func (c *Client) GetSimilarDocuments(ctx context.Context, documentID int, page, 
 	return &response, nil
 }
 
+// GetDocument retrieves a document by ID
+func (c *Client) GetDocument(ctx context.Context, documentID int) (*Document, error) {
+	path := fmt.Sprintf("/api/documents/%d/", documentID)
+
+	slog.Debug("Getting document", "document_id", documentID)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var document Document
+	if err := json.Unmarshal(bodyBytes, &document); err != nil {
+		slog.Error("Failed to parse document response",
+			"document_id", documentID,
+			"error", err)
+		return nil, fmt.Errorf("failed to parse document: %w", err)
+	}
+
+	return &document, nil
+}
+
+// GetDocumentContent retrieves the text content of a document
+func (c *Client) GetDocumentContent(ctx context.Context, documentID int) (string, error) {
+	// First get the document to access its content
+	document, err := c.GetDocument(ctx, documentID)
+	if err != nil {
+		return "", err
+	}
+
+	slog.Debug("Retrieved document content",
+		"document_id", documentID,
+		"content_length", len(document.Content))
+
+	return document.Content, nil
+}
+
+// CreateDocument creates a new document
+func (c *Client) CreateDocument(ctx context.Context, document *Document) (*Document, error) {
+	path := "/api/documents/"
+
+	slog.Debug("Creating document", "title", document.Title)
+
+	// Make POST request
+	bodyBytes, err := c.POST(ctx, path, document)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var createdDocument Document
+	if err := json.Unmarshal(bodyBytes, &createdDocument); err != nil {
+		slog.Error("Failed to parse created document response",
+			"error", err)
+		return nil, fmt.Errorf("failed to parse created document: %w", err)
+	}
+
+	slog.Info("Document created successfully",
+		"document_id", createdDocument.ID,
+		"title", createdDocument.Title)
+
+	return &createdDocument, nil
+}
+
+// UpdateDocument updates a document's metadata
+func (c *Client) UpdateDocument(ctx context.Context, documentID int, updates map[string]interface{}) (*Document, error) {
+	path := fmt.Sprintf("/api/documents/%d/", documentID)
+
+	slog.Debug("Updating document",
+		"document_id", documentID,
+		"fields", len(updates))
+
+	// Make PATCH request
+	bodyBytes, err := c.PATCH(ctx, path, updates)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var updatedDocument Document
+	if err := json.Unmarshal(bodyBytes, &updatedDocument); err != nil {
+		slog.Error("Failed to parse updated document response",
+			"document_id", documentID,
+			"error", err)
+		return nil, fmt.Errorf("failed to parse updated document: %w", err)
+	}
+
+	slog.Info("Document updated successfully",
+		"document_id", documentID,
+		"title", updatedDocument.Title)
+
+	return &updatedDocument, nil
+}
+
+// DeleteDocument deletes a document by ID
+func (c *Client) DeleteDocument(ctx context.Context, documentID int) error {
+	path := fmt.Sprintf("/api/documents/%d/", documentID)
+
+	slog.Debug("Deleting document", "document_id", documentID)
+
+	// Make DELETE request
+	err := c.DELETE(ctx, path)
+	if err != nil {
+		return err
+	}
+
+	slog.Info("Document deleted successfully", "document_id", documentID)
+	return nil
+}
+
 // parseError parses an error response from the API
 func parseError(statusCode int, body []byte) error {
 	var errorData map[string]interface{}

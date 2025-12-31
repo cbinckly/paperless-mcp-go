@@ -39,6 +39,63 @@ func (s *Server) registerTools() {
 		slog.Error("Failed to register server_info tool", "error", err)
 	}
 
+
+	// Register the search_documents tool
+	err = s.RegisterTool(Tool{
+		Name:        "search_documents",
+		Description: "Search for documents in Paperless by text query with pagination support",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"query": map[string]interface{}{
+					"type":        "string",
+					"description": "Search query text",
+				},
+				"page": map[string]interface{}{
+					"type":        "integer",
+					"description": "Page number (1-based, optional, default: 1)",
+				},
+				"page_size": map[string]interface{}{
+					"type":        "integer",
+					"description": "Number of results per page (optional, default: 25, max: 100)",
+				},
+			},
+			"required": []string{"query"},
+		},
+		Handler: s.handleSearchDocuments,
+	})
+	if err != nil {
+		slog.Error("Failed to register search_documents tool", "error", err)
+	}
+
+	// Register the find_similar_documents tool
+	err = s.RegisterTool(Tool{
+		Name:        "find_similar_documents",
+		Description: "Find documents similar to a given document with pagination support",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"document_id": map[string]interface{}{
+					"type":        "integer",
+					"description": "ID of the document to find similar documents for",
+				},
+				"page": map[string]interface{}{
+					"type":        "integer",
+					"description": "Page number (1-based, optional, default: 1)",
+				},
+				"page_size": map[string]interface{}{
+					"type":        "integer",
+					"description": "Number of results per page (optional, default: 25, max: 100)",
+				},
+			},
+			"required": []string{"document_id"},
+		},
+		Handler: s.handleFindSimilarDocuments,
+	})
+	if err != nil {
+		slog.Error("Failed to register find_similar_documents tool", "error", err)
+	}
+
 	slog.Info("Tool registration complete", "total_tools", len(s.tools))
 }
 

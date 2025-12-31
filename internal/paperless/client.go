@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"net/url"
 )
 
 // Client constants
@@ -20,6 +21,13 @@ const (
 	ContentTypeJSON   = "application/json"
 	ContentTypeHeader = "Content-Type"
 )
+
+// Pagination constants
+const (
+	DefaultPageSize = 25
+	MaxPageSize     = 100
+)
+
 
 // Client represents a Paperless API client
 type Client struct {
@@ -231,6 +239,83 @@ func (c *Client) DELETE(ctx context.Context, path string) error {
 	}
 
 	return nil
+}
+
+
+// SearchDocuments searches for documents by text query with pagination
+func (c *Client) SearchDocuments(ctx context.Context, query string, page, pageSize int) (*PaginatedResponse, error) {
+	// Validate and set defaults for pagination
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = DefaultPageSize
+	} else if pageSize > MaxPageSize {
+		pageSize = MaxPageSize
+	}
+
+	// Build query string
+	path := fmt.Sprintf("/api/documents/?query=%s&page=%d&page_size=%d",
+		url.QueryEscape(query), page, pageSize)
+
+	slog.Debug("Searching documents",
+		"query", query,
+		"page", page,
+		"page_size", pageSize)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var response PaginatedResponse
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		slog.Error("Failed to parse search response",
+			"error", err)
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return &response, nil
+}
+
+// GetSimilarDocuments finds documents similar to a given document with pagination
+func (c *Client) GetSimilarDocuments(ctx context.Context, documentID int, page, pageSize int) (*PaginatedResponse, error) {
+	// Validate and set defaults for pagination
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = DefaultPageSize
+	} else if pageSize > MaxPageSize {
+		pageSize = MaxPageSize
+	}
+
+	// Build path
+	path := fmt.Sprintf("/api/documents/%d/similar/?page=%d&page_size=%d",
+		documentID, page, pageSize)
+
+	slog.Debug("Finding similar documents",
+		"document_id", documentID,
+		"page", page,
+		"page_size", pageSize)
+
+	// Make GET request
+	bodyBytes, err := c.GET(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse response
+	var response PaginatedResponse
+	if err := json.Unmarshal(bodyBytes, &response); err != nil {
+		slog.Error("Failed to parse similar documents response",
+			"error", err)
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return &response, nil
 }
 
 // parseError parses an error response from the API

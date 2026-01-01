@@ -2,6 +2,59 @@
 
 An MCP (Model Context Protocol) Server for [Paperless-ngx](https://docs.paperless-ngx.com/), enabling AI assistants and other MCP clients to interact with your Paperless document management system.
 
+## Quickstart
+
+Get up and running quickly...
+
+### Run Your Own Instance
+
+You're already running your own Paperless Server, this will be much easier...
+
+Create an environment file:
+
+```env
+PAPERLESS_URL=https://paperless.example.com
+PAPERLESS_TOKEN=your_paperless_api_token_here
+MCP_AUTH_TOKEN=optional_mcp_auth_token
+LOG_LEVEL=info
+MCP_TRANSPORT=http
+MCP_HTTP_PORT=8080
+```
+
+Run with docker:
+
+```bash
+$ docker run --rm --env-file .env -p 8080:8080  cbinckly/paperless-mcp-go:latest
+```
+
+And you're up and running on `http://localhost:8080/mcp`.
+
+### Run with Claude or any MCP Client
+
+Docker is still easiest, if you've got it, update your MCP config:
+
+```json
+{
+  "mcpServers": {
+    "paperless-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--pull=always",
+        "cbinckly/paperless-mcp-go:latest"
+      ],
+      "env": {
+        "PAPERLESS_URL": "https://paperless.example.com",
+        "PAPERLESS_TOKEN": "your_paperless_api_token_here",
+        "MCP_TRANSPORT": "stdio"
+      }
+    }
+  }
+}
+```
+
 ## Features
 
 - **Complete Document Management**: Search, retrieve, create, update, and delete documents

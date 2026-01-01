@@ -6,6 +6,9 @@ An MCP (Model Context Protocol) Server for [Paperless-ngx](https://docs.paperles
 
 Get up and running quickly...
 
+You'll need a paperless instance and an API token (check your profile in the 
+paperless UI).
+
 ### Run Your Own Instance
 
 You're already running your own Paperless Server, this will be much easier...
@@ -128,7 +131,9 @@ header (`Authentication: Bearer {MCP_AUTH_TOKEN}`) or requests will be rejected.
 
 - Go 1.23 or later (for building from source)
 - A running [Paperless-ngx](https://docs.paperless-ngx.com/) instance
-- Paperless-ngx API token
+- [Paperless-ngx API token](https://docs.paperless-ngx.com/api/)
+  - You can create (or re-create) an API token by opening the "My Profile" link 
+    in the user dropdown found in the web UI and clicking the circular arrow button.
 - Docker and Docker Compose (optional, for containerized deployment)
 
 ## Installation

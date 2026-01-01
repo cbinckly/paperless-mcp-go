@@ -82,30 +82,40 @@ func (s *Server) RegisterTool(tool Tool) error {
 	// Store in our tools map
 	s.tools[tool.Name] = tool
 
-	// Build the list of options for creating the MCP tool
-	toolOpts := []mcp.ToolOption{
-		mcp.WithDescription(tool.Description),
-	}
-
-	// Marshal the InputSchema to JSON and add it to the tool options
-	// This ensures MCP clients receive the full JSON Schema including 'properties'
+	// Create the MCP tool using the appropriate method based on whether we have an InputSchema
+	// 
+	// The mcp-go SDK v0.43.2 has two ways to create tools with schemas:
+	// 1. NewTool(name, opts...) with options like WithString(), WithNumber(), etc.
+	//    This initializes InputSchema internally, so using WithRawInputSchema() causes
+	//    a conflict ("both InputSchema and RawInputSchema set").
+	// 2. NewToolWithRawSchema(name, description, schema) - specifically designed for
+	//    raw JSON schemas, which avoids the conflict entirely.
+	//
+	// Since our Tool struct uses map[string]interface{} for schemas (which are essentially
+	// raw JSON), we use NewToolWithRawSchema when InputSchema is provided.
+	var mcpTool mcp.Tool
+	
 	if tool.InputSchema != nil {
+		// Marshal the InputSchema to JSON for use with NewToolWithRawSchema
 		schemaJSON, err := json.Marshal(tool.InputSchema)
 		if err != nil {
 			slog.Error("Failed to marshal InputSchema",
 				"tool_name", tool.Name,
 				"error", err)
-			// Continue without the schema rather than failing tool registration
+			// Fall back to tool without schema
+			mcpTool = mcp.NewTool(tool.Name, mcp.WithDescription(tool.Description))
 		} else {
-			toolOpts = append(toolOpts, mcp.WithRawInputSchema(schemaJSON))
-			slog.Debug("InputSchema added to tool",
+			// Use NewToolWithRawSchema which is designed for raw JSON schemas
+			// This avoids the "both InputSchema and RawInputSchema set" error
+			mcpTool = mcp.NewToolWithRawSchema(tool.Name, tool.Description, schemaJSON)
+			slog.Debug("Tool created with raw input schema",
 				"tool_name", tool.Name,
 				"schema_size", len(schemaJSON))
 		}
+	} else {
+		// No InputSchema provided, use NewTool with just the description
+		mcpTool = mcp.NewTool(tool.Name, mcp.WithDescription(tool.Description))
 	}
-
-	// Create the MCP tool using the SDK with name, description, and InputSchema
-	mcpTool := mcp.NewTool(tool.Name, toolOpts...)
 
 	// Create the handler wrapper that calls our tool handler
 	toolName := tool.Name // Capture for closure

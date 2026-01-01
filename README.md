@@ -75,7 +75,7 @@ An MCP (Model Context Protocol) Server for [Paperless-ngx](https://docs.paperles
 ### From Source
 
 ```bash
-git clone git+ssh://git.binckly.ca/cbinckly/paperless-mcp-go.git
+git clone https://github.com/cbinckly/paperless-mcp-go.git
 cd paperless-mcp-go
 go mod download
 ```
@@ -83,7 +83,7 @@ go mod download
 ### Using Docker
 
 ```bash
-git clone git+ssh://git.binckly.ca/cbinckly/paperless-mcp-go.git
+git clone https://github.com/cbinckly/paperless-mcp-go.git
 cd paperless-mcp-go
 docker-compose up -d
 ```

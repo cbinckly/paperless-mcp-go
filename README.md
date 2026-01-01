@@ -1,4 +1,4 @@
-# Paperless MCP Go
+# Paperless MCP
 
 An MCP (Model Context Protocol) Server for [Paperless-ngx](https://docs.paperless-ngx.com/), enabling AI assistants and other MCP clients to interact with your Paperless document management system.
 

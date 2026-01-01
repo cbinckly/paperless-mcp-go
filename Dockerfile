@@ -1,6 +1,12 @@
 # Multi-stage Dockerfile for Paperless MCP Server
 # Stage 1: Build the Go binary
-FROM golang:1.23-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS builder
+
+# Set the environment variables for Go cross-compilation
+ARG TARGETOS
+ARG TARGETARCH
+ENV GOOS=${TARGETOS}
+ENV GOARCH=${TARGETARCH}
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates
@@ -16,13 +22,13 @@ RUN go mod download
 COPY . .
 
 # Build static binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+RUN CGO_ENABLED=0 go build \
     -ldflags="-w -s" \
     -o paperless-mcp \
     ./cmd/server
 
 # Stage 2: Create minimal runtime image
-FROM alpine:latest
+FROM --platform=$BUILDPLATFORM alpine:latest
 
 # Install ca-certificates for HTTPS requests
 RUN apk --no-cache add ca-certificates

@@ -15,8 +15,6 @@ Create an environment file:
 ```env
 PAPERLESS_URL=https://paperless.example.com
 PAPERLESS_TOKEN=your_paperless_api_token_here
-MCP_AUTH_TOKEN=optional_mcp_auth_token
-LOG_LEVEL=info
 MCP_TRANSPORT=http
 MCP_HTTP_PORT=8080
 ```
@@ -54,6 +52,16 @@ Docker is still easiest, if you've got it, update your MCP config:
   }
 }
 ```
+
+## Authentication
+
+In most cases, you should run the MCP server using stdio or a local/non-public
+HTTP server.  But if you need an extra layer of security, you can set a token
+that clients must present to the server.
+
+If you set `MCP_AUTH_TOKEN` in the environment and are using HTTP transport,
+the client will have to present it as a bearer token in an authentication
+header (`Authentication: Bearer {MCP_AUTH_TOKEN}`) or requests will be rejected.
 
 ## Features
 

@@ -82,11 +82,30 @@ func (s *Server) RegisterTool(tool Tool) error {
 	// Store in our tools map
 	s.tools[tool.Name] = tool
 
-	// Create the MCP tool using the SDK with just name and description
-	// The schema will be handled by the SDK
-	mcpTool := mcp.NewTool(tool.Name,
+	// Build the list of options for creating the MCP tool
+	toolOpts := []mcp.ToolOption{
 		mcp.WithDescription(tool.Description),
-	)
+	}
+
+	// Marshal the InputSchema to JSON and add it to the tool options
+	// This ensures MCP clients receive the full JSON Schema including 'properties'
+	if tool.InputSchema != nil {
+		schemaJSON, err := json.Marshal(tool.InputSchema)
+		if err != nil {
+			slog.Error("Failed to marshal InputSchema",
+				"tool_name", tool.Name,
+				"error", err)
+			// Continue without the schema rather than failing tool registration
+		} else {
+			toolOpts = append(toolOpts, mcp.WithRawInputSchema(schemaJSON))
+			slog.Debug("InputSchema added to tool",
+				"tool_name", tool.Name,
+				"schema_size", len(schemaJSON))
+		}
+	}
+
+	// Create the MCP tool using the SDK with name, description, and InputSchema
+	mcpTool := mcp.NewTool(tool.Name, toolOpts...)
 
 	// Create the handler wrapper that calls our tool handler
 	toolName := tool.Name // Capture for closure
